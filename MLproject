@@ -1,0 +1,17 @@
+name: Unet_implementation
+
+python_env: python_env.yaml
+# or
+# conda_env: my_env.yaml
+# or
+# docker_env:
+#    image:  mlflow-docker-example
+entry_points:
+  train:
+    parameters:
+      rotation_range: {type: float, default: 0.2}
+      width_shift_range: {type: float, default: 0.05}
+      height_shift_range: {type: float, default: 0.05}
+      steps_per_epoch: {type: float, default: 2}
+      epochs: {type: float, default: 5}
+    command: "python trainer.py --rotation_range {rotation_range} --width_shift_range {width_shift_range} --height_shift_range {height_shift_range} --steps_per_epoch {steps_per_epoch} --epochs {epochs}"

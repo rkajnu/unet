@@ -1,0 +1,5 @@
+tensorflow==2.16.1
+flask
+numpy==1.26.4
+mlflow==2.11.3
+pillow
