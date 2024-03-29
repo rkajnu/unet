@@ -13,6 +13,7 @@ run-name: ${{ github.run_id }}-${{ github.actor }}
 on:
   pull_request:
     types: [opened]
+  workflow_dispatch:
 
 jobs:
   BuildTestScripts:
