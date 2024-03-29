@@ -1,0 +1,100 @@
+# trigger: This workflow will trigger on pullrequests created X
+# purpose: this builds the application and runs the tests, pytest, blackformattest,
+# docstring test
+# purpose: also trains and save the model artifacts 
+# matrix: also use the matrx to test on windows and ubuntu
+# Agent: runs on self-hosted runner on aws ec2  X
+# use secrets to store the aws keys
+# Everything should be done using job containers
+
+# deploy on self-hosted as well as github hosted runner
+name: Code CI
+run-name: ${{ github.run_id }}-${{ github.actor }}
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  BuildTestScripts:
+    strategy:
+      fail-fast: true # fail if anything fails
+      matrix:
+        container_os: [python:3.9.3-alpine, python:3.9.3-windowsservercore-ltsc2016]
+    runs-on: [self-hosted, ec2]
+    container: ${{ matrix.container_os }}
+    steps:
+      - id: CheckoutRepo
+        name: CheckoutRepo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+      - id: InstalllibDependencies
+        name: InstalllibDependencies
+        run: pip install -r requirements.txt
+      - id: pytest
+        name: pytest
+        run: pytest tests/unit_test.py
+      - id: blackformattest
+        name: blackformattest                   
+        uses: lgeiger/black-action@v1.0.1
+        with:
+          args: ". --check" # returns exit code 1 if files need reformatting
+      - id: Docstringtest
+        name: Docstringtest
+        uses: JackMcKew/python-interrogate-check@main
+        with:
+          path: './'
+  # for trianing and savig the artifact files
+  TrainArt:
+    env:
+      EPOCHS: 2
+      STEPS_PER_EPOCH: ${{ github.var.STEPS_PER_EPOCH }}
+    needs: BuildTestScripts
+    runs-on: [self-hosted, ec2]
+    container: python:3.9.3-alpine
+    steps:
+      - id: CheckoutRepo
+        name: CheckoutRepo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }} # the triggering branch
+          fetch-depth: 0
+      - id: InstalllibDependencies
+        name: InstalllibDependencies
+        run: pip install -r requirements.txt
+      - id: CreateModelArtifactsmlflow
+        name: CreateModelArtifactsmlflow
+        run: |
+         echo "Training via mlflow project run PARAMS: ep: $EPOCHS step: $STEPS_PER_EPOCH" 
+         mlflow run  ./ -e train  --env-manager=local   --experiment-name project_exec -P epochs=$EPOCHS steps_per_epoch=$STEPS_PER_EPOCH
+        timeout-minutes: 10
+        continue-on-error: true
+      - id: CreateModelArtifacts
+        name: CreateModelArtifacts
+        if: ${{ failure() }}
+        run: |
+         echo "Fallback to training via python PARAMS: ep: $EPOCHS step: $STEPS_PER_EPOCH"
+         python trainer.py --epochs $EPOCHS --steps_per_epoch=$STEPS_PER_EPOCH
+        timeout-minutes: 10
+      - id: UploadModelArtifact
+        name: UploadModelArtifact
+        uses: actions/upload-artifacts@v4
+        with:
+          name: UnetModel
+          path: *.keras
+          if-no-files-found: error
+          retention-days: 30
+        # create a artifact url file to download while deployemnt
+      - id: SavArtifactUrl
+        name: SavArtifactUrl
+        run: echo ${{ steps.UploadModelArtifact.outputs.artifact-url }} >> artictsutil.txt
+      - id: CommitArtifactUrl
+        name: CommitArtifactUrl
+        run: |
+          git add artictsutil
+          git commit -m "artifact url revision: ${{ github.run_id }}"
+          git push
+
+

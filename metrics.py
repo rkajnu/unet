@@ -14,6 +14,7 @@ or
 only use model in and out eval
 """
 
+
 def iou(mask1, mask2):
     intersection = np.logical_and(mask1, mask2)
     union = np.logical_or(mask1, mask2)
@@ -36,4 +37,6 @@ def flow_mean_iou(predictions, targets):
 
     iou_series = pd.Series(iou_scores)
 
-    return mlflow.metrics.MetricValue(scores = iou_series, aggregate_results = {'mean_iou': iou_series.mean()})
+    return mlflow.metrics.MetricValue(
+        scores=iou_series, aggregate_results={"mean_iou": iou_series.mean()}
+    )
