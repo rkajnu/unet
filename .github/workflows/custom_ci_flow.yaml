@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifacts@v4
         with:
           name: UnetModel
-          path: *.keras
+          path: ./*.keras
           if-no-files-found: error
           retention-days: 30
         # create a artifact url file to download while deployemnt
