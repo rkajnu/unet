@@ -8,7 +8,7 @@
 # Everything should be done using job containers
 
 # deploy on self-hosted as well as github hosted runner
-name: Code CI
+name: Code_CI
 run-name: ${{ github.run_id }}-${{ github.actor }}
 on:
   pull_request:
