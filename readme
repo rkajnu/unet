@@ -1,0 +1,19 @@
+1、TypeError: ('Keyword argument not understood:', 'input')
+A: Model文件里面的input修改为
+model = Model(inputs=inputs, outputs=conv10)
+
+2、cannot write mode F as PNG
+A: 参见问题3，修改saveResult
+
+3、训练完结果是黑色的/白色的
+A: 训练的轮数太少了，loss不下降 / saveResult 函数没有改过来
+
+for i, item in enumerate(npyfile):
+        img = (
+            labelVisualize(num_class, COLOR_DICT, item)
+            if flag_multi_class
+            else item[:, :, 0]
+        )
+        img = (img > 0.5).astype(np.uint8)  # .reshape(256, 256)
+        img = img * 255
+        cv2.imwrite(os.path.join(save_path, "%d_predict.png" % i), img)
